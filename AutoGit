@@ -38,7 +38,7 @@ do
 
 	    if [ "$localCommit" == "$remoteCommit" ]
 	    then
-		echo "Up-to-date"
+		echo "[+] Up-to-date"
 	    elif [ "$localCommit" == "$base" ]
 	    then
 		git pull "$remote" master > /dev/null 2>61
