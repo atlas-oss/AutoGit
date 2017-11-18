@@ -1,0 +1,65 @@
+#!/bin/bash
+
+# Config
+time=30
+remote="origin"
+
+
+if [[ -z $AUTO_SYNC_PATH ]]
+then
+    echo "[-] You should set AUTO_SYNC_PATH"
+    exit
+fi
+
+IFS=':' read -r -a ARR <<< "$AUTO_SYNC_PATH"
+unset IFS
+
+while true
+do
+    for folder in ${ARR[@]}
+    do
+	cd $folder
+	
+	git status > /dev/null 2>&1
+	if [[ $? == 128 ]]; then
+	    echo "[-] There is no repo located at \"$1\"!"
+	    continue
+	fi
+
+	git commit -a -m "WARNING: generated commit at `date` on `hostname`" > /dev/null 2>61
+
+	git remote update "$remote" > /dev/null 2>61
+
+	if [ "$?" -eq 0 ]
+	then
+	    localCommit=`git rev-parse @` > /dev/null 2>61
+	    remoteCommit=`git rev-parse @{u}` > /dev/null 2>61
+	    base=`git merge-base @ @{u}` > /dev/null 2>61
+
+	    if [ "$localCommit" == "$remoteCommit" ]
+	    then
+		echo "Up-to-date"
+	    elif [ "$localCommit" == "$base" ]
+	    then
+		git pull "$remote" master > /dev/null 2>61
+	    elif [ "$remoteCommit" == "$base" ]
+	    then
+		git push "$remote" master > /dev/null 2>61
+	    else
+		echo "[?] Local and remote have diverged. Attempting automatic resolution."
+		git pull "$remote" master > /dev/null 2>61
+		if [ "$?" -eq 0 ]
+		then
+		    echo "[+] Successfully resolved."
+		    git push "$remote" master > /dev/null 2>61
+		else
+		    echo -e "\a"
+		fi
+	    fi
+	else
+	    echo "[-] Network error, trying again next time."
+	fi
+    done
+
+    sleep $time
+done
